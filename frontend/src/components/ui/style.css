@@ -1,0 +1,15 @@
+.axis {
+    color: #ccd6eb;
+    & text {
+        color: #666;
+    }
+    & .domain {
+        display: none;
+    }
+}
+
+.xAxis {
+    & line {
+        display: none;
+    }
+}

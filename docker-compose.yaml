@@ -1,0 +1,52 @@
+version: "3"
+
+services:
+  db-redis:
+    image: redis
+  db-posgres:
+    image: postgres
+    environment:
+      - POSTGRES_DB=dbname
+      - POSTGRES_USER=dbuser
+      - POSTGRES_PASSWORD=pass
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    volumes:
+      - ./backend/:/backend
+      - staticfiles:/backend/staticfiles
+    environment:
+      - CHANNELS_REDIS_HOST=db-redis
+      - CHANNELS_REDIS_PORT=6379
+
+      - POSTGRES_HOST=db-posgres
+      - POSTGRES_DB=dbname
+      - POSTGRES_USER=dbuser
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_PORT=5432
+    command: >
+      sh -c 
+      "python manage.py collectstatic --no-input && 
+      python manage.py makemigrations && 
+      python manage.py migrate &&
+      daphne --bind 0.0.0.0 -p 8000 PriceAnalysis.asgi:application"
+    depends_on:
+      - db-redis
+      - db-posgres
+
+  nginx:
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+    volumes:
+      - ./frontend/src/assets/img:/react/img
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/logs:/etc/nginx/logs
+      - staticfiles:/backend/staticfiles/
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+volumes:
+  staticfiles:
